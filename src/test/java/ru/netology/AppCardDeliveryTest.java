@@ -30,7 +30,7 @@ public class AppCardDeliveryTest {
         form.$("[data-test-id=city] input.input__control").setValue("Москва");
         SelenideElement date = form.$("[data-test-id=date] input.input__control");
         date.doubleClick();
-        date.sendKeys(Keys.ENTER);
+        date.sendKeys(Keys.BACK_SPACE);
         date.setValue(futureDate.format(formatter));
         form.$("[data-test-id=name] input").setValue("Колянников Владимир");
         form.$("[data-test-id=phone] input").setValue("+79066666666");
