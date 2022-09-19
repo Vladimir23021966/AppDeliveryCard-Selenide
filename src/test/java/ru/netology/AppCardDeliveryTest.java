@@ -1,5 +1,6 @@
 package ru.netology;
 
+import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,11 +13,14 @@ import java.time.format.DateTimeFormatter;
 import static com.codeborne.selenide.Condition.exactText;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selectors.byText;
-import static com.codeborne.selenide.Selectors.withText;
-import static com.codeborne.selenide.Selenide.*;
+import static com.codeborne.selenide.Selenide.$;
+import static com.codeborne.selenide.Selenide.open;
 
 public class AppCardDeliveryTest {
-    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+    public String generateDate(int days) {
+        return LocalDate.now().plusDays(days).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+    }
 
     @BeforeEach
     void setUp() {
@@ -25,42 +29,64 @@ public class AppCardDeliveryTest {
 
     @Test
     void shouldSubmitRequest() {
-        LocalDate futureDate = LocalDate.now().plusDays(3);
+        String planningDate = generateDate(3);
         SelenideElement form = $("form");
         form.$("[data-test-id=city] input.input__control").setValue("Москва");
         SelenideElement date = form.$("[data-test-id=date] input.input__control");
         date.doubleClick();
         date.sendKeys(Keys.BACK_SPACE);
-        date.setValue(futureDate.format(formatter));
+        date.setValue(planningDate);
         form.$("[data-test-id=name] input").setValue("Колянников Владимир");
         form.$("[data-test-id=phone] input").setValue("+79066666666");
         form.$("[data-test-id=agreement]").click();
         form.$$(".button__text").find(exactText("Забронировать")).click();
         $(byText("Успешно!")).shouldBe(visible, Duration.ofSeconds(15));
-        $(withText("Встреча успешно забронирована")).shouldBe(visible);
-        $(withText(futureDate.format(formatter))).shouldBe(visible);
+        $(".notification__content")
+                .shouldHave(Condition.text("Встреча успешно забронирована " +
+                        "на " + planningDate), Duration.ofSeconds(15))
+                .shouldBe(Condition.visible);
     }
 
     @Test
     void shouldSubmitForm() {
-        LocalDate defaultDate = LocalDate.now().plusDays(3);
-        LocalDate futureDate = LocalDate.now().plusDays(3);
-        String futureDay = Integer.toString(futureDate.getDayOfMonth());
+        String planningDate = generateDate(10);
         SelenideElement form = $("form");
-        form.$("[data-test-id=city] input.input__control").sendKeys("Мос");
+        form.$("[data-test-id=city] input.input__control").sendKeys("Мо");
         $(byText("Москва")).click();
-        form.$("[data-test-id=date] button").click();
-        if (defaultDate.getMonthValue() != futureDate.getMonthValue()) {
-            $(".calendar__arrow_direction_right[data-step='1']").click();
-        }
-        $$("td.calendar__day").find(exactText(futureDay)).click();
+        SelenideElement date = form.$("[data-test-id=date] input.input__control");
+        date.doubleClick();
+        date.sendKeys(Keys.BACK_SPACE);
+        date.setValue(planningDate);
         form.$("[data-test-id=name] input").setValue("Колянников Владимир");
         form.$("[data-test-id=phone] input").setValue("+79066666666");
         form.$("[data-test-id=agreement]").click();
         form.$$("button").find(exactText("Забронировать")).click();
         $(byText("Успешно!")).shouldBe(visible, Duration.ofSeconds(15));
-        $(withText("Встреча успешно забронирована")).shouldBe(visible);
-        $(withText(futureDate.format(formatter))).shouldBe(visible);
+        $(".notification__content")
+                .shouldHave(Condition.text("Встреча успешно забронирована " +
+                        "на " + planningDate), Duration.ofSeconds(15))
+                .shouldBe(Condition.visible);
     }
+
+    @Test
+    void shouldBeChangeDataWhenLess3() {
+        String planningDate = generateDate(1);
+        SelenideElement form = $("form");
+        form.$("[data-test-id=city] input.input__control").sendKeys("Мо");
+        $(byText("Москва")).click();
+        SelenideElement date = form.$("[data-test-id=date] input.input__control");
+        date.doubleClick();
+        date.sendKeys(Keys.BACK_SPACE);
+        date.setValue(planningDate);
+        form.$("[data-test-id=name] input").setValue("Колянников Владимир");
+        form.$("[data-test-id=phone] input").setValue("+79066666666");
+        form.$("[data-test-id=agreement]").click();
+        form.$$("button").find(exactText("Забронировать")).click();
+
+        $("[data-test-id=\"date\"] .input__sub")
+                .shouldHave(Condition.text("Заказ на выбранную дату невозможен"), Duration.ofSeconds(15))
+                .shouldBe(Condition.visible);
+    }
+
 }
 
